@@ -18,7 +18,8 @@ class App extends React.Component {
       flippedCards: [],
       lastFlippedCard: "",
       gameOver: false,
-      showTurnResult: false
+      showTurnResult: false,
+      disabledCards: []
     };
   }
 
@@ -77,15 +78,19 @@ class App extends React.Component {
   }
 
   nextTurnClick() {
+    const fc = this.state.flippedCards;
 
     // no match --> hide emojis 
     if (this.state.turnResult==="No Match!") {
-      const fc = this.state.flippedCards;
       fc[0].textContent = "";
       fc[1].textContent = "";
       this.setState({flippedCards: fc});
     // match --> check if game is over
     } else {
+      const dc = this.state.disabledCards;
+      dc.push(fc[0]);
+      dc.push(fc[1]);
+      this.setState({disabledCards: dc});
       this.checkForEndGame();
     }
 
@@ -99,39 +104,41 @@ class App extends React.Component {
 
   cardClick(evt) {    
 
-    // 2 flips per turn
-    if (this.state.flippedCards.length!== 2 && this.state.lastFlippedCard!== evt.target) {
+    // can't click on cards that are permanantly flipped due to win in previous turn
+    if (!this.state.disabledCards.includes(evt.target)) {
+        // 2 flips per turn
+      if (this.state.flippedCards.length!== 2 && this.state.lastFlippedCard!== evt.target) {
 
-      this.setState({lastFlippedCard: evt.target});
+        this.setState({lastFlippedCard: evt.target});
 
-      // show emoji
-      if (!evt.target.textContent) {
-        evt.target.textContent = evt.target.id;
-      // hide emoji
-      } else {
-        evt.target.textContent = "" ;
+        // show emoji
+        if (!evt.target.textContent) {
+          evt.target.textContent = evt.target.id;
+        // hide emoji
+        } else {
+          evt.target.textContent = "" ;
+        }
+
+        // add card to flipped cards for curr turn
+        const fc = this.state.flippedCards;
+        fc.push(evt.target);
+        this.setState({flippedCards: fc})
+      } 
+
+      // end of turn
+      if (this.state.flippedCards.length=== 2 && this.state.lastFlippedCard!== evt.target) {
+        const card1 = this.state.flippedCards[0];
+        const card2 = this.state.flippedCards[1];
+
+        // match
+        if (card1.textContent === card2.textContent) {
+          this.promptNextTurn("w");
+        // no match :(
+        } else {
+          this.promptNextTurn("l");
+        }
       }
-
-      // add card to flipped cards for curr turn
-      const fc = this.state.flippedCards;
-      fc.push(evt.target);
-      this.setState({flippedCards: fc})
     } 
-
-    // end of turn
-    if (this.state.flippedCards.length=== 2 && this.state.lastFlippedCard!== evt.target) {
-      const card1 = this.state.flippedCards[0];
-      const card2 = this.state.flippedCards[1];
-
-      // match
-      if (card1.textContent === card2.textContent) {
-        this.promptNextTurn("w");
-      // no match :(
-      } else {
-        this.promptNextTurn("l");
-      }
-    }
-      
   }
 
   render() {
@@ -166,6 +173,7 @@ class App extends React.Component {
     if (this.state.gameOver) {
       return (
         <div className="game-result">
+        <Turn currTurn={this.state.turn}/>
           <h1> Game Over! </h1>
         </div>
       )
